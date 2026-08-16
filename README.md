@@ -66,6 +66,3 @@ Para os módulos que dependem de conectividade (ex.: comunicação entre a BitDo
 ## 🛠️ Tecnologias
 - Placa **BitDogLab** (Raspberry Pi Pico / RP2040)
 - MicroPython e/ou C (Pico SDK) — *ajustar conforme a linguagem usada em cada módulo*
-
-## 🤝 Contribuindo
-Contribuições são bem-vindas! Sinta-se à vontade para abrir *issues* com sugestões, relatar problemas ou enviar *pull requests* com melhorias e novos módulos de triagem.
