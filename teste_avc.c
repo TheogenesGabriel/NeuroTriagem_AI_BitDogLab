@@ -45,6 +45,7 @@
 #include "ws2818b.pio.h"
 #include "ssd1306.h"
 #include "som.h"
+#include "testeECG.h"
 
 // ---------------------- Pinos ----------------------
 #define BOTAO_A       5
@@ -53,6 +54,12 @@
 #define MATRIZ_PIN    7
 #define I2C_SDA_PIN   14
 #define I2C_SCL_PIN   15
+#define ECG_ADC_GPIO         28    // AD8232 OUTPUT (ADC2)
+#define ECG_ADC_CHANNEL      2
+#define LEAD_OFF_PLUS_GPIO   9     // LO+
+#define LEAD_OFF_MINUS_GPIO  8     // LO-
+#define SDN 16
+#define TEMPO_ECG_MS         15000 // duração da coleta de ECG ao final do teste
 
 // ---------------------- Matriz de LEDs ----------------------
 #define LED_COUNT 25
@@ -381,6 +388,9 @@ int main() {
     adc_gpio_init(JOY_PIN_X);
     adc_gpio_init(JOY_PIN_Y);
 
+    // ECG (AD8232): configura LO+/LO-/SDN e o pino analógico
+    initECG(LEAD_OFF_PLUS_GPIO, LEAD_OFF_MINUS_GPIO, ECG_ADC_GPIO, SDN);
+
     // Matriz de LEDs
     npInit(MATRIZ_PIN);
     npClear();
@@ -416,10 +426,21 @@ int main() {
             piscaResultado(resultado[i]);
         }
 
+        // Etapa de ECG: coleta contínua, CSV enviado pela serial USB.
+        oledMostra4Linhas("ECG", "", "FIQUE PARADO", "COLETANDO");
+        printf("\n== Coleta de ECG (%d s) ==\n", TEMPO_ECG_MS / 1000);
+        ecg_resultado_t ecg;
+        coletaECG(ECG_ADC_CHANNEL, LEAD_OFF_PLUS_GPIO, LEAD_OFF_MINUS_GPIO,
+                  TEMPO_ECG_MS, &ecg);
+        printf("ECG: %lu amostras, %lu com eletrodo solto, faixa %u..%u\n",
+               (unsigned long)ecg.amostras, (unsigned long)ecg.amostras_lead_off,
+               ecg.adc_min, ecg.adc_max);
+
         printf("\n===== Resumo do teste =====\n");
         for (int i = 0; i < 4; ++i) {
             printf("%s: %s\n", nome_direcao[i], resultado[i] ? "OK" : "FALHOU");
         }
+        printf("ECG: %s\n", ecg.eletrodos_ok ? "OK" : "ELETRODOS SOLTOS");
         printf("Resultado geral: %s\n", todos_ok ? "SEM INDICIOS DE FRAQUEZA" : "POSSIVEL FRAQUEZA DETECTADA");
 
         // Resumo no OLED: uma linha por direção testada.
@@ -430,6 +451,10 @@ int main() {
         }
         oledMostra4Linhas(linhas_resumo[0], linhas_resumo[1], linhas_resumo[2], linhas_resumo[3]);
         sleep_ms(3000);
+
+        oledMostra4Linhas("ECG", "", ecg.eletrodos_ok ? "COLETA OK" : "ELETRODOS",
+                           ecg.eletrodos_ok ? "" : "SOLTOS");
+        sleep_ms(2000);
 
         oledMostra4Linhas("RESULTADO GERAL", "",
                            todos_ok ? "SEM INDICIOS" : "POSSIVEL",
