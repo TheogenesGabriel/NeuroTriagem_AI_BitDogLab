@@ -53,6 +53,7 @@ add_executable(teste_avc
         teste_avc.c
         ssd1306_i2c.c
         som.c
+        testeECG.c
         )
 
 pico_set_program_name(teste_avc "teste_avc")
